@@ -217,7 +217,7 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
       case AppLifecycleState.inactive:
         unawaited(_subscription?.cancel());
         _subscription = null;
-        unawaited(_controller.stop());
+        _ignoreErrors(_controller.stop());
     }
   }
 
