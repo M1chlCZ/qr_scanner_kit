@@ -11,8 +11,9 @@ import 'scan_gate.dart';
 class QrScanner extends StatefulWidget {
   /// Creates a QR scanner screen.
   ///
-  /// When [controller] is provided, this widget takes ownership of it and
-  /// disposes it when the widget is disposed.
+  /// When [controller] is provided, its `autoStart` setting is respected; the
+  /// widget still manages lifecycle start/stop and takes ownership of the
+  /// controller, disposing it when the widget is disposed.
   const QrScanner({
     super.key,
     required this.onScan,
@@ -24,6 +25,9 @@ class QrScanner extends StatefulWidget {
   });
 
   /// Called with the value of the first successfully scanned barcode.
+  ///
+  /// Called at most once per widget lifetime; only the first successfully
+  /// decoded non-empty barcode is reported.
   final ValueChanged<String> onScan;
 
   /// Title shown in the app bar.
@@ -42,12 +46,17 @@ class QrScanner extends StatefulWidget {
   final Color? backgroundColor;
 
   /// Whether to pop the enclosing route after the first scan.
+  ///
+  /// When false, the screen stays open after the first scan but will not
+  /// report further barcodes.
   final bool popOnScan;
 
   /// Controller used for the camera preview.
   ///
   /// When omitted, the widget creates and owns a controller. When provided,
-  /// the widget takes ownership and disposes it.
+  /// its `autoStart` setting is respected; the widget still manages lifecycle
+  /// start/stop and takes ownership of the controller, disposing it when the
+  /// widget is disposed.
   final MobileScannerController? controller;
 
   /// Creates the state for this scanner.
@@ -73,11 +82,24 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
           formats: [BarcodeFormat.all],
         );
     _subscribe();
-    unawaited(_controller.start());
+    if (!_controller.autoStart) {
+      _startScanner();
+    }
   }
 
   void _subscribe() {
     _subscription = _controller.barcodes.listen(_handleBarcode);
+  }
+
+  void _startScanner() {
+    if (_controller.value.isStarting || _controller.value.isRunning) {
+      return;
+    }
+    _ignoreErrors(_controller.start());
+  }
+
+  void _ignoreErrors(Future<void> future) {
+    unawaited(future.onError((Object _, StackTrace _) {}));
   }
 
   void _handleBarcode(BarcodeCapture capture) {
@@ -127,7 +149,12 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
                         ? const Icon(Icons.flash_off, color: Colors.white54)
                         : const Icon(Icons.flash_on, color: Colors.white),
                     iconSize: 32.0,
-                    onPressed: () => _controller.toggleTorch(),
+                    onPressed: () {
+                      if (!_controller.value.isInitialized) {
+                        return;
+                      }
+                      _ignoreErrors(_controller.toggleTorch());
+                    },
                   ),
                   IconButton(
                     color: Colors.white,
@@ -136,7 +163,12 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
                       color: Colors.white.withValues(alpha: 0.9),
                     ),
                     iconSize: 32.0,
-                    onPressed: () => _controller.switchCamera(),
+                    onPressed: () {
+                      if (!_controller.value.isInitialized) {
+                        return;
+                      }
+                      _ignoreErrors(_controller.switchCamera());
+                    },
                   ),
                 ],
               );
@@ -179,8 +211,9 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
       case AppLifecycleState.paused:
         break;
       case AppLifecycleState.resumed:
+        unawaited(_subscription?.cancel());
         _subscribe();
-        unawaited(_controller.start());
+        _startScanner();
       case AppLifecycleState.inactive:
         unawaited(_subscription?.cancel());
         _subscription = null;
@@ -193,7 +226,7 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_subscription?.cancel());
     _subscription = null;
-    unawaited(_controller.dispose());
+    _ignoreErrors(_controller.dispose());
     super.dispose();
   }
 }
