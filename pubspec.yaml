@@ -3,8 +3,8 @@ description: >-
   A ready-to-use QR scanner screen and viewfinder overlay built on
   mobile_scanner, with torch, camera switching, and a simple scan callback.
 version: 0.1.0
-repository: https://github.com/M1chlCZ/Rocketbot-App-New/tree/main/packages/qr_scanner_kit
-issue_tracker: https://github.com/M1chlCZ/Rocketbot-App-New/issues
+repository: https://github.com/M1chlCZ/qr_scanner_kit
+issue_tracker: https://github.com/M1chlCZ/qr_scanner_kit/issues
 topics:
   - widget
   - qr
