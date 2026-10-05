@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 
 /// A scanner viewfinder overlay that dims the camera preview and draws corner
 /// brackets around a centered cut-out.
+///
+/// Derived from OverlayShape in ai_barcode_scanner 5.2.2 (Apache-2.0); see
+/// THIRD_PARTY_NOTICES.
 class BarcodeOverlay extends ShapeBorder {
   /// Creates a scanner overlay with a configurable border and cut-out.
   ///

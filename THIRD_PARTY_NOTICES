@@ -1,6 +1,7 @@
 qr_scanner_kit includes a modified copy of the OverlayShape class from the
 ai_barcode_scanner package, version 5.2.2
-(https://pub.dev/packages/ai_barcode_scanner), which is licensed under the
+(https://pub.dev/packages/ai_barcode_scanner,
+https://github.com/itsarvinddev/barcode_scanner), which is licensed under the
 Apache License, Version 2.0.
 
 The class was renamed to BarcodeOverlay and modified for this package:

@@ -32,23 +32,27 @@ dependencies:
 
 ## Permissions
 
-`mobile_scanner` needs camera access at runtime, and both platforms require a
-declaration before the camera can start.
+`mobile_scanner` needs camera access at runtime. Android permissions are
+merged from the plugin manifest and requested by the plugin, while iOS
+requires a usage description in the app's `Info.plist`.
 
 ### Android
 
-Add the camera permission to `android/app/src/main/AndroidManifest.xml`:
+`mobile_scanner` merges the `CAMERA` permission from its own manifest and
+requests it at runtime, so no app-side change is strictly required. To declare
+it explicitly, add it to `android/app/src/main/AndroidManifest.xml`:
 
 ```xml
 <uses-permission android:name="android.permission.CAMERA" />
 ```
 
-Request it at runtime, for example with `permission_handler`, before pushing
-`QrScanner`.
+If the app handles permission UX itself, for example with `permission_handler`,
+request the permission before pushing `QrScanner`.
 
 ### iOS
 
-Add a usage description to `ios/Runner/Info.plist`:
+This entry is required on iOS. Add a usage description to
+`ios/Runner/Info.plist`:
 
 ```xml
 <key>NSCameraUsageDescription</key>
@@ -147,9 +151,9 @@ class _ExampleHomePageState extends State<ExampleHomePage> {
 | --- | --- | --- | --- |
 | `onScan` | `ValueChanged<String>` | required | Called with the first successfully decoded non-empty barcode value. |
 | `title` | `String?` | `'Scan QR code'` | Title shown in the app bar. |
-| `overlay` | `BarcodeOverlay?` | red corner bracket overlay | Overlay drawn on top of the camera preview. |
+| `overlay` | `BarcodeOverlay?` | `BarcodeOverlay(borderColor: red, borderRadius: 10, borderLength: 30, borderWidth: 5)` | Overlay drawn on top of the camera preview. |
 | `backgroundColor` | `Color?` | `Theme.canvasColor` | Background color of the scanner body. |
-| `popOnScan` | `bool` | `true` | Whether to pop the enclosing route after the first scan. |
+| `popOnScan` | `bool` | `true` | Whether to attempt to pop the enclosing route after the first scan. |
 | `controller` | `MobileScannerController?` | created internally | Camera controller; its `autoStart` setting is respected. |
 
 ### Scan behavior
@@ -157,9 +161,10 @@ class _ExampleHomePageState extends State<ExampleHomePage> {
 `onScan` is called **at most once per `QrScanner` instance**: only the first
 successfully decoded, non-empty barcode is reported, and the barcode stream
 subscription is cancelled immediately afterwards. With the default
-`popOnScan: true` the enclosing route pops after that first scan. With
-`popOnScan: false` the screen stays open and the camera preview keeps running,
-but no further barcodes are reported. Push a new `QrScanner` to scan again.
+`popOnScan: true` the scanner attempts to pop the enclosing route (via
+`Navigator.maybePop`) after that first scan. With `popOnScan: false` the screen
+stays open and the camera preview keeps running, but no further barcodes are
+reported. Push a new `QrScanner` to scan again.
 
 ### Controller ownership
 
@@ -169,6 +174,10 @@ not started blindly: its `autoStart` flag is respected, the widget still
 starts and stops it with the app lifecycle, and the widget disposes the
 controller when it is disposed. Do not dispose an injected controller
 yourself and do not reuse it after the scanner is closed.
+
+Injecting a controller requires a direct dependency on `mobile_scanner` and
+`import 'package:mobile_scanner/mobile_scanner.dart';`, because
+`qr_scanner_kit` does not re-export it.
 
 ### ScanGate
 
@@ -190,8 +199,8 @@ the area outside a centered cut-out and draws corner brackets around it.
 | `borderRadius` | `double` | `0` | Corner radius of the cut-out and corner brackets. |
 | `borderLength` | `double` | `40` | Length of each corner bracket. |
 | `cutOutSize` | `double?` | `null` | Square cut-out size. Mutually exclusive with `cutOutWidth`/`cutOutHeight`. |
-| `cutOutWidth` | `double?` | `250` | Width of the cut-out. |
-| `cutOutHeight` | `double?` | `250` | Height of the cut-out. |
+| `cutOutWidth` | `double?` | effective default: 250 (or `cutOutSize`) | Width of the cut-out. |
+| `cutOutHeight` | `double?` | effective default: 250 (or `cutOutSize`) | Height of the cut-out. |
 | `cutOutBottomOffset` | `double` | `0` | Vertical offset applied to the cut-out. |
 
 Provide either `cutOutSize` or both `cutOutWidth` and `cutOutHeight`, never
@@ -200,12 +209,16 @@ both. `scale` returns a copy with every configured value preserved.
 ## Example
 
 A runnable app that pushes the scanner and shows the last scanned value lives
-in [`example/`](example/). Run it on a device with a camera:
+in [`example/`](example/). The example ships without platform folders, so
+generate them locally before running on a device with a camera:
 
 ```bash
 cd example
+flutter create . --platforms=android,ios
 flutter run
 ```
+
+The generated `android/` and `ios/` folders are not committed.
 
 ## Screenshot
 
@@ -221,3 +234,6 @@ documentation was added, default border values were changed, validation and
 assert messages were corrected, and `scale` now preserves the configured
 overlay values. The full Apache-2.0 license text is reproduced in
 [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).
+
+The package itself is MIT licensed (see [`LICENSE`](LICENSE)); only the
+derived `BarcodeOverlay` remains under Apache-2.0.
