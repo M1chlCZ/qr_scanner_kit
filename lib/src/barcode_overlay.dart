@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 /// A scanner viewfinder overlay that dims the camera preview and draws corner
 /// brackets around a centered cut-out.
 ///
-/// Derived from OverlayShape in ai_barcode_scanner 5.2.2 (Apache-2.0); see
-/// THIRD_PARTY_NOTICES.
+/// This overlay derives from OverlayShape in ai_barcode_scanner 5.2.2
+/// (Apache-2.0). See THIRD_PARTY_NOTICES.
 class BarcodeOverlay extends ShapeBorder {
   /// Creates a scanner overlay with a configurable border and cut-out.
   ///
-  /// Provide either [cutOutSize] or both [cutOutWidth] and [cutOutHeight],
-  /// never both.
+  /// Provide [cutOutSize], or provide [cutOutWidth] and [cutOutHeight]
+  /// together. Do not use both forms.
   BarcodeOverlay({
     this.borderColor = Colors.red,
     this.borderWidth = 3.0,
@@ -42,7 +42,7 @@ class BarcodeOverlay extends ShapeBorder {
   /// Stroke width of the corner brackets.
   final double borderWidth;
 
-  /// Color used to dim the area outside the cut-out.
+  /// Color of the dimmed area outside the cut-out.
   final Color overlayColor;
 
   /// Corner radius of the cut-out and corner brackets.
@@ -60,7 +60,7 @@ class BarcodeOverlay extends ShapeBorder {
   /// Vertical offset applied to the cut-out.
   final double cutOutBottomOffset;
 
-  /// The extra space this overlay asks for around the border rectangle.
+  /// The extra space this overlay reserves around the border rectangle.
   @override
   EdgeInsetsGeometry get dimensions => const EdgeInsets.all(10);
 
@@ -181,7 +181,7 @@ class BarcodeOverlay extends ShapeBorder {
       ..restore();
   }
 
-  /// Returns a copy of this overlay with every configured value preserved.
+  /// Returns a copy of this overlay that keeps every configured value.
   @override
   ShapeBorder scale(double t) {
     return BarcodeOverlay(

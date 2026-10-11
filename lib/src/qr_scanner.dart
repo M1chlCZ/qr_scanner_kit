@@ -11,9 +11,9 @@ import 'scan_gate.dart';
 class QrScanner extends StatefulWidget {
   /// Creates a QR scanner screen.
   ///
-  /// When [controller] is provided, its `autoStart` setting is respected; the
-  /// widget still manages lifecycle start/stop and takes ownership of the
-  /// controller, disposing it when the widget is disposed.
+  /// When you provide [controller], the widget respects its `autoStart`
+  /// setting and manages lifecycle start/stop. The widget takes ownership of
+  /// the controller and disposes it when the widget is disposed.
   const QrScanner({
     super.key,
     required this.onScan,
@@ -24,10 +24,10 @@ class QrScanner extends StatefulWidget {
     this.controller,
   });
 
-  /// Called with the value of the first successfully scanned barcode.
+  /// Receives the value of the first successfully scanned barcode.
   ///
-  /// Called at most once per widget lifetime; only the first successfully
-  /// decoded non-empty barcode is reported.
+  /// Runs at most once per widget lifetime and reports only the first
+  /// successfully decoded non-empty barcode.
   final ValueChanged<String> onScan;
 
   /// Title shown in the app bar.
@@ -47,16 +47,16 @@ class QrScanner extends StatefulWidget {
 
   /// Whether to pop the enclosing route after the first scan.
   ///
-  /// When false, the screen stays open after the first scan but will not
+  /// When false, the screen stays open after the first scan but does not
   /// report further barcodes.
   final bool popOnScan;
 
-  /// Controller used for the camera preview.
+  /// Controller for the camera preview.
   ///
-  /// When omitted, the widget creates and owns a controller. When provided,
-  /// its `autoStart` setting is respected; the widget still manages lifecycle
-  /// start/stop and takes ownership of the controller, disposing it when the
-  /// widget is disposed.
+  /// When omitted, the widget creates and owns a controller. When you provide
+  /// one, the widget respects its `autoStart` setting and manages lifecycle
+  /// start/stop. The widget takes ownership of the controller and disposes it
+  /// when the widget is disposed.
   final MobileScannerController? controller;
 
   /// Creates the state for this scanner.
@@ -144,7 +144,6 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    color: Colors.white,
                     icon: torchOn
                         ? const Icon(Icons.flash_off, color: Colors.white54)
                         : const Icon(Icons.flash_on, color: Colors.white),
@@ -157,7 +156,6 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
                     },
                   ),
                   IconButton(
-                    color: Colors.white,
                     icon: Icon(
                       Icons.flip_camera_android_sharp,
                       color: Colors.white.withValues(alpha: 0.9),

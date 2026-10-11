@@ -3,7 +3,7 @@ class ScanGate {
   bool _handled = false;
 
   /// Returns `true` for the first call and `false` for every later call
-  /// until [reset] is called.
+  /// until you call [reset].
   bool tryHandle() {
     if (_handled) return false;
     _handled = true;
