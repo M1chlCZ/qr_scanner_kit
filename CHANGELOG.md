@@ -1,3 +1,17 @@
+## [0.2.0] - 2026-10-14
+
+- Add barcode format selection: `QrScanner` passes `formats` to the
+  internally created controller. An injected controller keeps its own
+  formats.
+- Add gallery scanning: `QrImageScanner.scanImageFile` decodes one barcode
+  from an image file with its own short-lived controller. A live camera scan
+  stays untouched. Unsupported platforms throw an `UnsupportedError`.
+- Add haptics: `hapticsEnabled` (default `true`) plays a light haptic impact
+  when the scanner accepts a code.
+- Add validation hooks: `isAccepted` filters values before the one-shot
+  gate. A rejected value consumes no scan attempt, fires no haptics, and
+  calls `onRejected` instead of `onScan`.
+
 ## 0.1.2
 
 - Documentation and internal cleanup.

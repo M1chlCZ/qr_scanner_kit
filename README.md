@@ -9,6 +9,10 @@ the Rocketbot app, so every scanner screen behaves the same.
 
 - `QrScanner`: a full-screen scanner with a live camera preview
 - Torch toggle and front/back camera switching in the app bar
+- `QrImageScanner`: gallery scanning from an image file
+- Barcode format selection through `formats`
+- Haptic feedback on accepted scans
+- Validation hooks: `isAccepted` and `onRejected`
 - `BarcodeOverlay`: a `ShapeBorder` that dims the preview and draws corner
   brackets around a centered cut-out
 - `ScanGate`: a helper that lets a callback run at most once
@@ -62,6 +66,68 @@ Navigator.of(context).push(
 );
 ```
 
+## Gallery scanning
+
+`QrImageScanner.scanImageFile` decodes one barcode from an image file:
+
+```dart
+final String? value = await QrImageScanner.scanImageFile('/path/to/code.png');
+```
+
+The method creates its own controller, analyzes the file, and disposes the
+controller. A running camera scan keeps its state. Image analysis works on
+Android, physical iOS devices, and macOS. Unsupported platforms throw an
+`UnsupportedError`. The iOS Simulator does not support image analysis.
+
+## Barcode formats
+
+By default, `QrScanner` detects all barcode formats. Pass `formats` to limit
+detection to specific formats. The list goes to the internally created
+controller:
+
+```dart
+import 'package:mobile_scanner/mobile_scanner.dart';
+
+QrScanner(
+  formats: const [BarcodeFormat.qrCode, BarcodeFormat.ean13],
+  onScan: (String value) {
+    print('Scanned: $value');
+  },
+);
+```
+
+An injected controller keeps its own formats. The `formats` parameter has no
+effect on an injected controller.
+
+## Haptics
+
+`QrScanner` plays a light haptic impact when it accepts a code. Haptics are on
+by default. Set `hapticsEnabled: false` to disable them:
+
+```dart
+QrScanner(
+  hapticsEnabled: false,
+  onScan: (String value) {
+    print('Scanned: $value');
+  },
+);
+```
+
+## Validation hooks
+
+Use `isAccepted` to filter scanned values. The scanner checks `isAccepted`
+before the one-shot gate. A rejected value consumes no scan attempt, fires no
+haptics, and calls no `onScan`. The scanner stays ready for the next code and
+reports rejected values through `onRejected`:
+
+```dart
+QrScanner(
+  isAccepted: (String value) => value.startsWith('SHOP-'),
+  onRejected: (String value) => print('Rejected: $value'),
+  onScan: (String value) => print('Accepted: $value'),
+);
+```
+
 ## API
 
 ### QrScanner
@@ -74,6 +140,10 @@ Navigator.of(context).push(
 | `backgroundColor` | `Color?` | `Theme.canvasColor` | Background color of the scanner body. |
 | `popOnScan` | `bool` | `true` | Pops the route after the first scan. |
 | `controller` | `MobileScannerController?` | created internally | Camera controller. The widget respects its `autoStart` flag. |
+| `formats` | `List<BarcodeFormat>?` | `null` (all formats) | Formats for the internally created controller. |
+| `hapticsEnabled` | `bool` | `true` | Plays a light haptic impact on an accepted scan. |
+| `isAccepted` | `bool Function(String)?` | `null` (accept all) | Filters values before the one-shot gate. |
+| `onRejected` | `void Function(String)?` | `null` | Receives values that `isAccepted` rejects. |
 
 `onScan` runs at most once per `QrScanner`. The widget reports only the first
 decoded non-empty barcode and then cancels the subscription. With
@@ -86,6 +156,15 @@ lifecycle and disposes it. Do not dispose an injected controller yourself. Do
 not reuse it after the scanner closes. To inject a controller, import
 `package:mobile_scanner/mobile_scanner.dart`. The package does not re-export
 `mobile_scanner`.
+
+### QrImageScanner
+
+`QrImageScanner.scanImageFile(path)` decodes one barcode from an image file
+and returns its value. It returns `null` when the image holds no barcode. The
+method creates its own controller and disposes the controller after the scan.
+A running camera scan keeps its state. Image analysis works on Android,
+physical iOS devices, and macOS. Unsupported platforms throw an
+`UnsupportedError`.
 
 ### BarcodeOverlay
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart' hide BarcodeOverlay;
 
 import 'barcode_overlay.dart';
@@ -22,6 +23,10 @@ class QrScanner extends StatefulWidget {
     this.backgroundColor,
     this.popOnScan = true,
     this.controller,
+    this.formats,
+    this.hapticsEnabled = true,
+    this.isAccepted,
+    this.onRejected,
   });
 
   /// Receives the value of the first successfully scanned barcode.
@@ -59,6 +64,29 @@ class QrScanner extends StatefulWidget {
   /// when the widget is disposed.
   final MobileScannerController? controller;
 
+  /// The barcode formats that the scanner detects.
+  ///
+  /// The widget passes this list to the internally created controller. When
+  /// this is null, the scanner detects all formats. An injected [controller]
+  /// keeps its own formats, so this parameter has no effect then.
+  final List<BarcodeFormat>? formats;
+
+  /// Whether the scanner plays a light haptic impact when it accepts a code.
+  ///
+  /// Defaults to `true`.
+  final bool hapticsEnabled;
+
+  /// Decides whether the scanner accepts a scanned value.
+  ///
+  /// The scanner checks this function before the one-shot gate. A rejected
+  /// value consumes no scan attempt, fires no haptics, and calls no [onScan].
+  /// The scanner then waits for the next code. When this is null, the scanner
+  /// accepts every non-empty value.
+  final bool Function(String value)? isAccepted;
+
+  /// Receives every scanned value that [isAccepted] rejects.
+  final void Function(String value)? onRejected;
+
   /// Creates the state for this scanner.
   @override
   State<QrScanner> createState() => _QrScannerState();
@@ -79,7 +107,7 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
           autoStart: false,
           returnImage: false,
           detectionSpeed: DetectionSpeed.normal,
-          formats: [BarcodeFormat.all],
+          formats: widget.formats ?? const [BarcodeFormat.all],
         );
     _subscribe();
     if (!_controller.autoStart) {
@@ -111,11 +139,22 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
         break;
       }
     }
-    if (value == null || !_scanGate.tryHandle()) {
+    if (value == null) {
+      return;
+    }
+    final isAccepted = widget.isAccepted;
+    if (isAccepted != null && !isAccepted(value)) {
+      widget.onRejected?.call(value);
+      return;
+    }
+    if (!_scanGate.tryHandle()) {
       return;
     }
     unawaited(_subscription?.cancel());
     _subscription = null;
+    if (widget.hapticsEnabled) {
+      unawaited(HapticFeedback.lightImpact());
+    }
     widget.onScan(value);
     if (widget.popOnScan && mounted) {
       unawaited(Navigator.maybePop(context));

@@ -2,5 +2,6 @@
 library;
 
 export 'src/barcode_overlay.dart';
+export 'src/qr_image_scanner.dart';
 export 'src/qr_scanner.dart';
 export 'src/scan_gate.dart';
