@@ -33,6 +33,9 @@ void main() {
     bool Function(String value)? isAccepted,
     void Function(String value)? onRejected,
     MobileScannerController? controller,
+    bool continuous = false,
+    Duration duplicateWindow = const Duration(seconds: 2),
+    String? hint,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -43,6 +46,9 @@ void main() {
           isAccepted: isAccepted,
           onRejected: onRejected,
           controller: controller,
+          continuous: continuous,
+          duplicateWindow: duplicateWindow,
+          hint: hint,
         ),
       ),
     );
@@ -208,5 +214,57 @@ void main() {
 
     expect(rejected, ['BAD-1']);
     expect(scans, ['OK-1']);
+  });
+
+  testWidgets('continuous mode reports each distinct code', (tester) async {
+    final scans = <String>[];
+    await pumpScanner(tester, onScan: scans.add, continuous: true);
+
+    platform.emitValue('alpha');
+    await tester.pump();
+    platform.emitValue('beta');
+    await tester.pump();
+
+    expect(scans, ['alpha', 'beta']);
+  });
+
+  testWidgets('continuous mode suppresses repeated codes', (tester) async {
+    final scans = <String>[];
+    await pumpScanner(tester, onScan: scans.add, continuous: true);
+
+    platform.emitValue('alpha');
+    await tester.pump();
+    platform.emitValue('alpha');
+    await tester.pump();
+    platform.emitValue('alpha');
+    await tester.pump();
+
+    expect(scans, ['alpha']);
+  });
+
+  testWidgets('continuous mode applies the validation hook', (tester) async {
+    final scans = <String>[];
+    final rejected = <String>[];
+    await pumpScanner(
+      tester,
+      onScan: scans.add,
+      continuous: true,
+      isAccepted: (value) => value.startsWith('OK-'),
+      onRejected: rejected.add,
+    );
+
+    platform.emitValue('BAD-1');
+    await tester.pump();
+    platform.emitValue('OK-1');
+    await tester.pump();
+
+    expect(rejected, ['BAD-1']);
+    expect(scans, ['OK-1']);
+  });
+
+  testWidgets('shows the hint over the preview', (tester) async {
+    await pumpScanner(tester, hint: 'Point the camera at a code');
+
+    expect(find.text('Point the camera at a code'), findsOneWidget);
   });
 }

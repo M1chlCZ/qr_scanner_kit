@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart' hide BarcodeOverlay;
 
 import 'barcode_overlay.dart';
+import 'scan_deduper.dart';
 import 'scan_gate.dart';
 
 /// A full-screen QR scanner with a camera preview, torch control, camera
@@ -27,6 +28,10 @@ class QrScanner extends StatefulWidget {
     this.hapticsEnabled = true,
     this.isAccepted,
     this.onRejected,
+    this.continuous = false,
+    this.duplicateWindow = const Duration(seconds: 2),
+    this.hint,
+    this.hintStyle,
   });
 
   /// Receives the value of the first successfully scanned barcode.
@@ -87,6 +92,27 @@ class QrScanner extends StatefulWidget {
   /// Receives every scanned value that [isAccepted] rejects.
   final void Function(String value)? onRejected;
 
+  /// Whether the scanner keeps running after a successful scan.
+  ///
+  /// When true, the scanner reports every accepted code and never pops. When
+  /// false (the default), it reports the first accepted code and stops.
+  final bool continuous;
+
+  /// Minimum time between two reports of the same code.
+  ///
+  /// Only continuous mode uses this window. Repeated captures of one code
+  /// inside the window are ignored, so a barcode held in front of the camera
+  /// does not flood [onScan].
+  final Duration duplicateWindow;
+
+  /// Short instruction drawn over the camera preview.
+  final String? hint;
+
+  /// Text style of [hint].
+  ///
+  /// Defaults to the body text style in `Colors.white70`.
+  final TextStyle? hintStyle;
+
   /// Creates the state for this scanner.
   @override
   State<QrScanner> createState() => _QrScannerState();
@@ -94,6 +120,7 @@ class QrScanner extends StatefulWidget {
 
 class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
   final ScanGate _scanGate = ScanGate();
+  late final ScanDeduper _deduper;
   late final MobileScannerController _controller;
   StreamSubscription<BarcodeCapture>? _subscription;
 
@@ -101,6 +128,7 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _deduper = ScanDeduper(window: widget.duplicateWindow);
     _controller =
         widget.controller ??
         MobileScannerController(
@@ -145,6 +173,16 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
     final isAccepted = widget.isAccepted;
     if (isAccepted != null && !isAccepted(value)) {
       widget.onRejected?.call(value);
+      return;
+    }
+    if (widget.continuous) {
+      if (_deduper.isDuplicate(value)) {
+        return;
+      }
+      if (widget.hapticsEnabled) {
+        unawaited(HapticFeedback.lightImpact());
+      }
+      widget.onScan(value);
       return;
     }
     if (!_scanGate.tryHandle()) {
@@ -230,6 +268,21 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
                     ),
               ),
             ),
+            if (widget.hint != null)
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: 48,
+                child: Text(
+                  widget.hint!,
+                  textAlign: TextAlign.center,
+                  style:
+                      widget.hintStyle ??
+                      theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white70,
+                      ),
+                ),
+              ),
           ],
         ),
       ),
