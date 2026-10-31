@@ -1,9 +1,10 @@
 # qr_scanner_kit
 
-A ready-to-use QR scanner screen and viewfinder overlay built on
-[`mobile_scanner`](https://pub.dev/packages/mobile_scanner), with torch
-control, camera switching, and a simple scan callback. The package comes from
-the Rocketbot app, so every scanner screen behaves the same.
+A QR scanner screen and viewfinder overlay for Flutter, built on
+[`mobile_scanner`](https://pub.dev/packages/mobile_scanner). You get torch
+control, camera switching and one callback for the scanned value. The package
+grew out of the Rocketbot app, so the scanner looks and behaves the same
+everywhere it's used.
 
 ## Features
 
@@ -15,7 +16,7 @@ the Rocketbot app, so every scanner screen behaves the same.
 - Validation hooks: `isAccepted` and `onRejected`
 - Continuous scanning mode with a duplicate window for repeated codes
 - `BarcodeOverlay`: a `ShapeBorder` that dims the preview and draws corner
-  brackets around a centered cut-out
+  brackets around a centred cut-out
 - `ScanGate`: a helper that lets a callback run at most once
 - `ScanDeduper`: a helper that suppresses repeated codes in a time window
 - One-shot `onScan` callback with `popOnScan` control
@@ -35,9 +36,9 @@ flutter pub add qr_scanner_kit
 
 ### Android
 
-`mobile_scanner` merges the `CAMERA` permission from its own manifest and
-requests it at runtime. No app-side change is necessary. When the app handles
-permission UX itself, request the permission before you push `QrScanner`.
+`mobile_scanner` declares the `CAMERA` permission in its own manifest and asks
+for it at runtime, so you don't need to change anything. If your app handles
+the permission prompt itself, ask before you open `QrScanner`.
 
 ### iOS
 
@@ -77,16 +78,15 @@ Navigator.of(context).push(
 final String? value = await QrImageScanner.scanImageFile('/path/to/code.png');
 ```
 
-The method creates its own controller, analyzes the file, and disposes the
-controller. A running camera scan keeps its state. Image analysis works on
-Android, physical iOS devices, and macOS. Unsupported platforms throw an
-`UnsupportedError`. The iOS Simulator does not support image analysis.
+The method creates its own controller, analyses the file and disposes the
+controller again. A running camera scan keeps its state. Image analysis works
+on Android, physical iOS devices and macOS; other platforms throw an
+`UnsupportedError`. The iOS Simulator can't analyse images.
 
 ## Barcode formats
 
-By default, `QrScanner` detects all barcode formats. Pass `formats` to limit
-detection to specific formats. The list goes to the internally created
-controller:
+`QrScanner` detects every barcode format by default. Pass `formats` to narrow
+it down. The list goes to the controller the widget creates:
 
 ```dart
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -99,13 +99,13 @@ QrScanner(
 );
 ```
 
-An injected controller keeps its own formats. The `formats` parameter has no
-effect on an injected controller.
+An injected controller keeps its own formats, so `formats` does nothing in
+that case.
 
 ## Haptics
 
-`QrScanner` plays a light haptic impact when it accepts a code. Haptics are on
-by default. Set `hapticsEnabled: false` to disable them:
+`QrScanner` plays a light haptic impact when it accepts a code. This is on by
+default. Set `hapticsEnabled: false` to turn it off:
 
 ```dart
 QrScanner(
@@ -118,10 +118,10 @@ QrScanner(
 
 ## Validation hooks
 
-Use `isAccepted` to filter scanned values. The scanner checks `isAccepted`
-before the one-shot gate. A rejected value consumes no scan attempt, fires no
-haptics, and calls no `onScan`. The scanner stays ready for the next code and
-reports rejected values through `onRejected`:
+Use `isAccepted` to filter scanned values. The scanner checks it before the
+one-shot gate. A rejected value uses up no scan attempt, plays no haptics and
+never reaches `onScan`. The scanner stays ready for the next code, and
+`onRejected` receives every value that failed the check:
 
 ```dart
 QrScanner(
@@ -134,9 +134,8 @@ QrScanner(
 ## Continuous scanning
 
 Set `continuous: true` to keep the camera running and report every accepted
-code. Repeated captures of the same code are ignored for `duplicateWindow`
-(two seconds by default), so one barcode held in front of the camera does not
-flood the callback:
+code. The same code is ignored for `duplicateWindow` (two seconds by default),
+so a barcode held in front of the camera doesn't flood the callback:
 
 ```dart
 QrScanner(
@@ -146,7 +145,7 @@ QrScanner(
 );
 ```
 
-A short instruction can be drawn over the preview:
+You can also draw a short instruction over the preview:
 
 ```dart
 QrScanner(
@@ -164,7 +163,7 @@ QrScanner(
 | `onScan` | `ValueChanged<String>` | required | Receives the first decoded non-empty barcode value. |
 | `title` | `String?` | `'Scan QR code'` | App bar title. |
 | `overlay` | `BarcodeOverlay?` | red corner brackets | Overlay on the camera preview. |
-| `backgroundColor` | `Color?` | `Theme.canvasColor` | Background color of the scanner body. |
+| `backgroundColor` | `Color?` | `Theme.canvasColor` | Background colour of the scanner body. |
 | `popOnScan` | `bool` | `true` | Pops the route after the first scan. |
 | `controller` | `MobileScannerController?` | created internally | Camera controller. The widget respects its `autoStart` flag. |
 | `formats` | `List<BarcodeFormat>?` | `null` (all formats) | Formats for the internally created controller. |
@@ -176,48 +175,47 @@ QrScanner(
 | `hint` | `String?` | `null` | Instruction drawn over the preview. |
 | `hintStyle` | `TextStyle?` | white70 body text | Style of `hint`. |
 
-`onScan` runs at most once per `QrScanner` in the default one-shot mode. The
-widget reports only the first decoded non-empty barcode and then cancels the
-subscription. With `popOnScan: false`, the screen stays open but reports no
-more barcodes. Push a new `QrScanner` to scan again.
+In the default one-shot mode, `onScan` runs at most once per `QrScanner`. The
+widget reports the first decoded barcode and cancels the subscription. With
+`popOnScan: false`, the screen stays open but reports nothing more. Push a new
+`QrScanner` to scan again.
 
 With `continuous: true`, the scanner keeps running, reports each accepted code
-once per `duplicateWindow`, and never pops the route. `popOnScan` applies only
+once per `duplicateWindow` and never pops the route. `popOnScan` applies only
 to the one-shot mode.
 
-When you do not pass a controller, `QrScanner` creates one with
-`autoStart: false`. The widget starts and stops the controller with the app
-lifecycle and disposes it. Do not dispose an injected controller yourself. Do
-not reuse it after the scanner closes. To inject a controller, import
-`package:mobile_scanner/mobile_scanner.dart`. The package does not re-export
+When you don't pass a controller, `QrScanner` creates one with
+`autoStart: false`. The widget starts and stops it with the app lifecycle and
+disposes it when the widget goes away. Don't dispose an injected controller
+yourself, and don't reuse it after the scanner closes. To inject one, import
+`package:mobile_scanner/mobile_scanner.dart`; the package doesn't re-export
 `mobile_scanner`.
 
 ### QrImageScanner
 
 `QrImageScanner.scanImageFile(path)` decodes one barcode from an image file
-and returns its value. It returns `null` when the image holds no barcode. The
-method creates its own controller and disposes the controller after the scan.
-A running camera scan keeps its state. Image analysis works on Android,
-physical iOS devices, and macOS. Unsupported platforms throw an
-`UnsupportedError`.
+and returns its value, or `null` when the image has no barcode. The method
+creates its own controller and disposes it after the scan. A running camera
+scan keeps its state. Image analysis works on Android, physical iOS devices
+and macOS; other platforms throw an `UnsupportedError`.
 
 ### BarcodeOverlay
 
 | Parameter | Default | Purpose |
 | --- | --- | --- |
-| `borderColor` | `Colors.red` | Color of the corner brackets. |
+| `borderColor` | `Colors.red` | Colour of the corner brackets. |
 | `borderWidth` | `3.0` | Stroke width of the corner brackets. |
-| `overlayColor` | translucent black | Dim color outside the cut-out. |
+| `overlayColor` | translucent black | Dim colour outside the cut-out. |
 | `borderRadius` | `0` | Corner radius of the cut-out and brackets. |
 | `borderLength` | `40` | Length of each corner bracket. |
 | `cutOutSize`, `cutOutWidth`, `cutOutHeight` | 250 | Cut-out dimensions. |
 | `cutOutBottomOffset` | `0` | Vertical offset of the cut-out. |
 
-Use `cutOutSize`, or use `cutOutWidth` and `cutOutHeight`. Do not use both.
+Use `cutOutSize`, or use `cutOutWidth` and `cutOutHeight`. Not both.
 
 ### ScanGate
 
-`ScanGate` holds the one-shot guard as a small, testable helper. `tryHandle()`
+`ScanGate` keeps the one-shot guard in a small, testable helper. `tryHandle()`
 returns `true` once and `false` on later calls until you call `reset()`.
 
 ### ScanDeduper
@@ -229,8 +227,8 @@ the history. Pass `clock` to keep tests instant.
 ## Example
 
 A runnable app in [`example/`](example/) pushes the scanner and shows the last
-scanned value. The example ships without platform folders, so generate them
-before you run it on a device with a camera:
+scanned value. The example ships without platform directories, so generate
+them before running it on a device with a camera:
 
 ```bash
 cd example
@@ -242,8 +240,8 @@ flutter run
 
 `BarcodeOverlay` is a modified copy of `OverlayShape` from the
 [`ai_barcode_scanner`](https://pub.dev/packages/ai_barcode_scanner) package
-(version 5.2.2, Apache-2.0). It was renamed, documented, and adjusted. The
-full Apache-2.0 license text is in [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).
+(version 5.2.2, Apache-2.0). It was renamed, documented and adjusted. The full
+Apache-2.0 licence text is in [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).
 
 The package itself is MIT licensed. See [`LICENSE`](LICENSE). Only the derived
 `BarcodeOverlay` remains under Apache-2.0.
