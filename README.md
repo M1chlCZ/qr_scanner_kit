@@ -154,6 +154,23 @@ QrScanner(
 );
 ```
 
+## Camera errors
+
+When the camera cannot start, `QrScanner` shows a message and a retry button.
+A denied permission gets its own explanation. Pass `errorBuilder` to replace
+the view, for example to link to the system settings:
+
+```dart
+QrScanner(
+  errorBuilder: (context, error) => Text(
+    error.errorCode == MobileScannerErrorCode.permissionDenied
+        ? 'Open settings and allow the camera'
+        : 'Camera unavailable',
+  ),
+  onScan: (String value) => print(value),
+);
+```
+
 ## API
 
 ### QrScanner
@@ -174,6 +191,8 @@ QrScanner(
 | `duplicateWindow` | `Duration` | 2 seconds | Ignores repeats of one code in continuous mode. |
 | `hint` | `String?` | `null` | Instruction drawn over the preview. |
 | `hintStyle` | `TextStyle?` | white70 body text | Style of `hint`. |
+| `scanWindow` | `Rect?` | `null` (whole preview) | Restricts detection to a rectangle. Not supported on the web. |
+| `errorBuilder` | `Widget Function(BuildContext, MobileScannerException)?` | default error view | Replaces the built-in camera error view. |
 
 In the default one-shot mode, `onScan` runs at most once per `QrScanner`. The
 widget reports the first decoded barcode and cancels the subscription. With

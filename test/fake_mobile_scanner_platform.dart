@@ -80,6 +80,15 @@ class FakeMobileScannerPlatform extends MobileScannerPlatform {
     stopCount += 1;
   }
 
+  /// The scan windows passed to the platform.
+  final List<Rect?> scanWindows = [];
+
+  /// Records a scan window update.
+  @override
+  Future<void> updateScanWindow(Rect? window) async {
+    scanWindows.add(window);
+  }
+
   /// Counts one dispose call.
   @override
   Future<void> dispose() async {

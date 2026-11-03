@@ -5,6 +5,9 @@
 - Add `duplicateWindow` (default two seconds) and the public `ScanDeduper`,
   which suppress repeated captures of the same code in continuous mode.
 - Add `hint` and `hintStyle` to draw a short instruction over the preview.
+- Add `scanWindow` to restrict detection to a rectangle of the preview.
+- Add `errorBuilder` and a default camera error view with a retry button.
+  A denied camera permission gets a dedicated message.
 - `popOnScan` applies to the one-shot mode; continuous mode never pops.
 
 ## [0.2.0] - 2026-10-14

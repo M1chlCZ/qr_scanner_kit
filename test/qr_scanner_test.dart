@@ -36,6 +36,8 @@ void main() {
     bool continuous = false,
     Duration duplicateWindow = const Duration(seconds: 2),
     String? hint,
+    Rect? scanWindow,
+    Widget Function(BuildContext, MobileScannerException)? errorBuilder,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -49,6 +51,8 @@ void main() {
           continuous: continuous,
           duplicateWindow: duplicateWindow,
           hint: hint,
+          scanWindow: scanWindow,
+          errorBuilder: errorBuilder,
         ),
       ),
     );
@@ -328,5 +332,59 @@ void main() {
     await tester.pump();
 
     expect(scans, ['alpha', 'alpha']);
+  });
+
+  testWidgets('passes scanWindow and errorBuilder to the preview', (
+    tester,
+  ) async {
+    const window = Rect.fromLTWH(12, 24, 120, 90);
+    await pumpScanner(tester, scanWindow: window);
+
+    final preview = tester.widget<MobileScanner>(find.byType(MobileScanner));
+    expect(preview.scanWindow, window);
+    expect(preview.errorBuilder, isNotNull);
+    expect(platform.scanWindows, isNotEmpty);
+  });
+
+  testWidgets('default error view explains a denied permission', (
+    tester,
+  ) async {
+    await pumpScanner(tester);
+
+    final preview = tester.widget<MobileScanner>(find.byType(MobileScanner));
+    const error = MobileScannerException(
+      errorCode: MobileScannerErrorCode.permissionDenied,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => preview.errorBuilder!(context, error),
+        ),
+      ),
+    );
+
+    expect(find.text('Camera permission denied'), findsOneWidget);
+    expect(find.text('Try again'), findsOneWidget);
+  });
+
+  testWidgets('uses a custom errorBuilder when provided', (tester) async {
+    await pumpScanner(
+      tester,
+      errorBuilder: (context, error) => const Text('custom camera error'),
+    );
+
+    final preview = tester.widget<MobileScanner>(find.byType(MobileScanner));
+    const error = MobileScannerException(
+      errorCode: MobileScannerErrorCode.genericError,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => preview.errorBuilder!(context, error),
+        ),
+      ),
+    );
+
+    expect(find.text('custom camera error'), findsOneWidget);
   });
 }

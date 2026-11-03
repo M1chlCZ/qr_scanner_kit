@@ -32,6 +32,8 @@ class QrScanner extends StatefulWidget {
     this.duplicateWindow = const Duration(seconds: 2),
     this.hint,
     this.hintStyle,
+    this.scanWindow,
+    this.errorBuilder,
   });
 
   /// Receives the value of the first successfully scanned barcode.
@@ -112,6 +114,17 @@ class QrScanner extends StatefulWidget {
   ///
   /// Defaults to the body text style in `Colors.white70`.
   final TextStyle? hintStyle;
+
+  /// Restricts detection to this rectangle of the preview.
+  ///
+  /// The rectangle uses the widget coordinate space. `null` scans the whole
+  /// preview. The web platform does not support a scan window.
+  final Rect? scanWindow;
+
+  /// Builds the view shown when the camera fails to start.
+  ///
+  /// When `null`, the widget shows a short explanation and a retry button.
+  final Widget Function(BuildContext, MobileScannerException)? errorBuilder;
 
   /// Creates the state for this scanner.
   @override
@@ -280,7 +293,16 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
         color: widget.backgroundColor ?? theme.canvasColor,
         child: Stack(
           children: [
-            MobileScanner(controller: _controller),
+            MobileScanner(
+              controller: _controller,
+              scanWindow: widget.scanWindow,
+              errorBuilder: (context, error) =>
+                  widget.errorBuilder?.call(context, error) ??
+                  _ScannerErrorView(
+                    error: error,
+                    onRetry: () => _ignoreErrors(_controller.start()),
+                  ),
+            ),
             Container(
               decoration: ShapeDecoration(
                 shape:
@@ -343,5 +365,51 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
     _subscription = null;
     _ignoreErrors(_controller.dispose());
     super.dispose();
+  }
+}
+
+class _ScannerErrorView extends StatelessWidget {
+  const _ScannerErrorView({required this.error, required this.onRetry});
+
+  final MobileScannerException error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final denied =
+        error.errorCode == MobileScannerErrorCode.permissionDenied;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.no_photography_outlined,
+              color: Colors.white70,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              denied
+                  ? 'Camera permission denied'
+                  : 'The camera could not start',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 18),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              denied
+                  ? 'Allow camera access in the system settings, then try again.'
+                  : 'Try again. If the problem persists, restart the app.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white54),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: onRetry, child: const Text('Try again')),
+          ],
+        ),
+      ),
+    );
   }
 }
