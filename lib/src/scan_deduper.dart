@@ -18,14 +18,19 @@ class ScanDeduper {
   final DateTime Function() _clock;
   final Map<String, DateTime> _lastSeen = <String, DateTime>{};
 
+  /// The number of codes tracked inside the current window.
+  int get length => _lastSeen.length;
+
   /// Returns `true` when [value] was reported less than [window] ago.
   ///
   /// A new value is recorded, so the next call with the same value inside the
-  /// window returns `true`.
+  /// window returns `true`. Entries older than the window are dropped, so the
+  /// store stays bounded by the codes seen inside the window.
   bool isDuplicate(String value) {
     final DateTime now = _clock();
+    _lastSeen.removeWhere((_, seen) => now.difference(seen) >= window);
     final DateTime? last = _lastSeen[value];
-    if (last != null && now.difference(last) < window) {
+    if (last != null) {
       return true;
     }
     _lastSeen[value] = now;

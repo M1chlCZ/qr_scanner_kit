@@ -120,7 +120,7 @@ class QrScanner extends StatefulWidget {
 
 class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
   final ScanGate _scanGate = ScanGate();
-  late final ScanDeduper _deduper;
+  late ScanDeduper _deduper;
   late final MobileScannerController _controller;
   StreamSubscription<BarcodeCapture>? _subscription;
 
@@ -143,6 +143,14 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
     }
   }
 
+  @override
+  void didUpdateWidget(QrScanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.duplicateWindow != widget.duplicateWindow) {
+      _deduper = ScanDeduper(window: widget.duplicateWindow);
+    }
+  }
+
   void _subscribe() {
     _subscription = _controller.barcodes.listen(_handleBarcode);
   }
@@ -159,30 +167,47 @@ class _QrScannerState extends State<QrScanner> with WidgetsBindingObserver {
   }
 
   void _handleBarcode(BarcodeCapture capture) {
-    String? value;
-    for (final barcode in capture.barcodes) {
-      final rawValue = barcode.rawValue;
-      if (rawValue != null && rawValue.isNotEmpty) {
-        value = rawValue;
-        break;
-      }
-    }
-    if (value == null) {
-      return;
-    }
-    final isAccepted = widget.isAccepted;
-    if (isAccepted != null && !isAccepted(value)) {
-      widget.onRejected?.call(value);
+    final values = <String>[
+      for (final barcode in capture.barcodes)
+        if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty)
+          barcode.rawValue!,
+    ];
+    if (values.isEmpty) {
       return;
     }
     if (widget.continuous) {
-      if (_deduper.isDuplicate(value)) {
-        return;
+      for (final value in values) {
+        _handleContinuous(value);
       }
-      if (widget.hapticsEnabled) {
-        unawaited(HapticFeedback.lightImpact());
-      }
-      widget.onScan(value);
+      return;
+    }
+    _handleOneShot(values.first);
+  }
+
+  bool _accepts(String value) {
+    final isAccepted = widget.isAccepted;
+    if (isAccepted != null && !isAccepted(value)) {
+      widget.onRejected?.call(value);
+      return false;
+    }
+    return true;
+  }
+
+  void _handleContinuous(String value) {
+    if (!_accepts(value)) {
+      return;
+    }
+    if (_deduper.isDuplicate(value)) {
+      return;
+    }
+    if (widget.hapticsEnabled) {
+      unawaited(HapticFeedback.lightImpact());
+    }
+    widget.onScan(value);
+  }
+
+  void _handleOneShot(String value) {
+    if (!_accepts(value)) {
       return;
     }
     if (!_scanGate.tryHandle()) {

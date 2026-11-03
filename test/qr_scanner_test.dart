@@ -267,4 +267,66 @@ void main() {
 
     expect(find.text('Point the camera at a code'), findsOneWidget);
   });
+
+  testWidgets('continuous mode reports every barcode in one capture', (
+    tester,
+  ) async {
+    final scans = <String>[];
+    await pumpScanner(tester, onScan: scans.add, continuous: true);
+
+    platform.emitCapture(
+      BarcodeCapture(
+        barcodes: const [
+          Barcode(rawValue: 'alpha'),
+          Barcode(rawValue: 'beta'),
+        ],
+      ),
+    );
+    await tester.pump();
+
+    expect(scans, ['alpha', 'beta']);
+  });
+
+  testWidgets('rebuilds the deduper when the duplicate window changes', (
+    tester,
+  ) async {
+    final scans = <String>[];
+    late StateSetter rebuild;
+    var window = const Duration(seconds: 2);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: QrScanner(
+          onScan: scans.add,
+          continuous: true,
+          duplicateWindow: window,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    platform.emitValue('alpha');
+    await tester.pump();
+    expect(scans, ['alpha']);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            rebuild = setState;
+            return QrScanner(
+              onScan: scans.add,
+              continuous: true,
+              duplicateWindow: window,
+            );
+          },
+        ),
+      ),
+    );
+    rebuild(() => window = Duration.zero);
+    await tester.pump();
+    platform.emitValue('alpha');
+    await tester.pump();
+
+    expect(scans, ['alpha', 'alpha']);
+  });
 }

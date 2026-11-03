@@ -32,4 +32,18 @@ void main() {
     deduper.reset();
     expect(deduper.isDuplicate('code'), isFalse);
   });
+
+  test('drops entries outside the window', () {
+    var now = DateTime(2026, 11, 3, 12);
+    final deduper = ScanDeduper(
+      window: const Duration(seconds: 2),
+      clock: () => now,
+    );
+    deduper.isDuplicate('alpha');
+    deduper.isDuplicate('beta');
+    expect(deduper.length, 2);
+    now = now.add(const Duration(seconds: 3));
+    deduper.isDuplicate('gamma');
+    expect(deduper.length, 1);
+  });
 }
