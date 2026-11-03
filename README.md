@@ -13,10 +13,13 @@ the Rocketbot app, so every scanner screen behaves the same.
 - Barcode format selection through `formats`
 - Haptic feedback on accepted scans
 - Validation hooks: `isAccepted` and `onRejected`
+- Continuous scanning mode with a duplicate window for repeated codes
 - `BarcodeOverlay`: a `ShapeBorder` that dims the preview and draws corner
   brackets around a centered cut-out
 - `ScanGate`: a helper that lets a callback run at most once
+- `ScanDeduper`: a helper that suppresses repeated codes in a time window
 - One-shot `onScan` callback with `popOnScan` control
+- Optional hint text over the camera preview
 - Optional injection of a `MobileScannerController`
 - No state-management dependency, only plain Flutter widgets
 
@@ -128,6 +131,30 @@ QrScanner(
 );
 ```
 
+## Continuous scanning
+
+Set `continuous: true` to keep the camera running and report every accepted
+code. Repeated captures of the same code are ignored for `duplicateWindow`
+(two seconds by default), so one barcode held in front of the camera does not
+flood the callback:
+
+```dart
+QrScanner(
+  continuous: true,
+  duplicateWindow: const Duration(seconds: 3),
+  onScan: (String value) => results.add(value),
+);
+```
+
+A short instruction can be drawn over the preview:
+
+```dart
+QrScanner(
+  hint: 'Point the camera at a code',
+  onScan: (String value) => print(value),
+);
+```
+
 ## API
 
 ### QrScanner
@@ -144,11 +171,19 @@ QrScanner(
 | `hapticsEnabled` | `bool` | `true` | Plays a light haptic impact on an accepted scan. |
 | `isAccepted` | `bool Function(String)?` | `null` (accept all) | Filters values before the one-shot gate. |
 | `onRejected` | `void Function(String)?` | `null` | Receives values that `isAccepted` rejects. |
+| `continuous` | `bool` | `false` | Keeps scanning and reports every accepted code. |
+| `duplicateWindow` | `Duration` | 2 seconds | Ignores repeats of one code in continuous mode. |
+| `hint` | `String?` | `null` | Instruction drawn over the preview. |
+| `hintStyle` | `TextStyle?` | white70 body text | Style of `hint`. |
 
-`onScan` runs at most once per `QrScanner`. The widget reports only the first
-decoded non-empty barcode and then cancels the subscription. With
-`popOnScan: false`, the screen stays open but reports no more barcodes. Push a
-new `QrScanner` to scan again.
+`onScan` runs at most once per `QrScanner` in the default one-shot mode. The
+widget reports only the first decoded non-empty barcode and then cancels the
+subscription. With `popOnScan: false`, the screen stays open but reports no
+more barcodes. Push a new `QrScanner` to scan again.
+
+With `continuous: true`, the scanner keeps running, reports each accepted code
+once per `duplicateWindow`, and never pops the route. `popOnScan` applies only
+to the one-shot mode.
 
 When you do not pass a controller, `QrScanner` creates one with
 `autoStart: false`. The widget starts and stops the controller with the app
@@ -184,6 +219,12 @@ Use `cutOutSize`, or use `cutOutWidth` and `cutOutHeight`. Do not use both.
 
 `ScanGate` holds the one-shot guard as a small, testable helper. `tryHandle()`
 returns `true` once and `false` on later calls until you call `reset()`.
+
+### ScanDeduper
+
+`ScanDeduper` suppresses repeated codes in continuous mode. `isDuplicate()`
+returns `true` when the same value arrived inside the window; `reset()` clears
+the history. Pass `clock` to keep tests instant.
 
 ## Example
 

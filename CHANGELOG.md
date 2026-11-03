@@ -1,3 +1,12 @@
+## [0.3.0] - 2026-11-03
+
+- Add continuous scanning: `QrScanner(continuous: true)` keeps the camera
+  running and reports every accepted code instead of stopping after the first.
+- Add `duplicateWindow` (default two seconds) and the public `ScanDeduper`,
+  which suppress repeated captures of the same code in continuous mode.
+- Add `hint` and `hintStyle` to draw a short instruction over the preview.
+- `popOnScan` applies to the one-shot mode; continuous mode never pops.
+
 ## [0.2.0] - 2026-10-14
 
 - Add barcode format selection: `QrScanner` passes `formats` to the
