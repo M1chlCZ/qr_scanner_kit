@@ -1,3 +1,9 @@
+## [0.4.0] - 2026-11-18
+
+- Require Flutter 3.47 and Dart 3.13.
+- Use the `material_ui` package for Material widgets.
+- Update `mobile_scanner` to 7.5.0.
+
 ## [0.3.0] - 2026-11-03
 
 - Add continuous scanning: `QrScanner(continuous: true)` keeps the camera

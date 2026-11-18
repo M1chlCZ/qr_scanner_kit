@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A scanner viewfinder overlay that dims the camera preview and draws corner
 /// brackets around a centered cut-out.
